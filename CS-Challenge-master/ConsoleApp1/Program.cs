@@ -12,7 +12,7 @@ namespace ConsoleApp1
 {
     class Program
     {
-        static string[] results = new string[50];
+        static List<string> results = new List<string>();
         static char key;
         static Tuple<string, string> names;
         static ConsolePrinter printer = new ConsolePrinter();
@@ -139,18 +139,18 @@ namespace ConsoleApp1
         private static void GetRandomJokes(string category, int number, string baseAddress, string randomJokesEndpoint)
         {
             new JsonFeed(baseAddress, number);
-            results = JsonFeed.GetRandomJokes(names?.Item1, names?.Item2, category, randomJokesEndpoint);
+            results = JsonFeed.GetRandomJokes(names?.Item1, names?.Item2, category, randomJokesEndpoint).Result;
         }
 
         private static void GetCategories(string baseAddress, string categoriesEndpoint)
         {
-            new JsonFeed(baseAddress, 0);
+            new JsonFeed(baseAddress);
             results = JsonFeed.GetCategories(categoriesEndpoint).Result;
         }
 
         private static void GetNames(string nameGeneratorApiEndpoint)
         {
-            new JsonFeed(nameGeneratorApiEndpoint, 0);
+            new JsonFeed(nameGeneratorApiEndpoint);
             dynamic result = JsonFeed.GetNames();
             names = Tuple.Create(result.name.ToString(), result.surname.ToString());
         }

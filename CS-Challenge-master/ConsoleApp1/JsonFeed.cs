@@ -12,36 +12,61 @@ namespace ConsoleApp1
     class JsonFeed
     {
         static string _url = "";
-        public JsonFeed(string endpoint, int results)
+        static int _resultCount;
+        public JsonFeed(string endpoint)
         {
             _url = endpoint;
         }
-        
-		public static string[] GetRandomJokes(string firstname, string lastname, string category, string randomJokesEndpoint)
-		{
-			HttpClient client = new HttpClient();
-			client.BaseAddress = new Uri(_url);
-			//string url = "jokes/random";
-			if (category != null)
-			{
-				if (randomJokesEndpoint.Contains('?'))
+
+        public JsonFeed(string endpoint, int resultCount)
+        {
+            _url = endpoint;
+            _resultCount = resultCount;
+        }
+
+        public static async Task<List<string>> GetRandomJokes(string firstname, string lastname, string category, string randomJokesEndpoint)
+        {
+            HttpClient client = new HttpClient();
+            client.BaseAddress = new Uri(_url);
+            var tasks = new List<Task<string>>();
+            List<string> getJokeResponses = new List<string>();
+            List<string> returnJokeList = new List<string>();
+            if (category != null)
+            {
+                if (randomJokesEndpoint.Contains('?'))
                     randomJokesEndpoint += "&";
-				else randomJokesEndpoint += "?";
+                else randomJokesEndpoint += "?";
                 randomJokesEndpoint += "category=";
                 randomJokesEndpoint += category;
-			}
-
-            string joke = Task.FromResult(client.GetStringAsync(randomJokesEndpoint).Result).Result;
-
-            if (firstname != null && lastname != null)
-            {
-                int index = joke.IndexOf("Chuck Norris");
-                string firstPart = joke.Substring(0, index);
-                string secondPart = joke.Substring(0 + index + "Chuck Norris".Length, joke.Length - (index + "Chuck Norris".Length));
-                joke = firstPart + " " + firstname + " " + lastname + secondPart;
             }
 
-            return new string[] { JsonConvert.DeserializeObject<dynamic>(joke).value };
+            //parallel calls to the api to reduce overall time and improve performance
+            for (int i = 0; i < _resultCount; i++)
+            {
+                async Task<string> func()
+                {
+                    return await client.GetStringAsync(randomJokesEndpoint);
+                }
+                tasks.Add(func());
+            }
+            await Task.WhenAll(tasks);
+
+            foreach (var t in tasks)
+            {
+                var getResponse = await t;
+                dynamic jsonResponse = JsonConvert.DeserializeObject(getResponse);
+                string joke = jsonResponse.value;
+                getJokeResponses.Add(joke);
+            }
+
+            if (string.IsNullOrEmpty(firstname) && string.IsNullOrEmpty(lastname))
+                return getJokeResponses;
+
+            foreach (string joke in getJokeResponses)
+            {
+                returnJokeList.Add(joke.Replace("Chuck Norris", string.Join(" ", firstname, lastname)));
+            }
+            return returnJokeList;
         }
 
         /// <summary>
@@ -50,24 +75,23 @@ namespace ConsoleApp1
         /// <param name="client2"></param>
         /// <returns></returns>
 		public static dynamic GetNames()
-		{
-			HttpClient client = new HttpClient();
-			client.BaseAddress = new Uri(_url);
-			var result = client.GetStringAsync("").Result;
-			return JsonConvert.DeserializeObject<dynamic>(result);
-		}
-
-		public static async Task<string[]> GetCategories(string categoriesEndpoint)
-		{
-            string[] categories = null;
-            //string url = "jokes/categories";
+        {
             HttpClient client = new HttpClient();
-			client.BaseAddress = new Uri(_url);
+            client.BaseAddress = new Uri(_url);
+            var result = client.GetStringAsync("").Result;
+            return JsonConvert.DeserializeObject<dynamic>(result);
+        }
+
+        public static async Task<List<string>> GetCategories(string categoriesEndpoint)
+        {
+            List<string> categories = null;
+            HttpClient client = new HttpClient();
+            client.BaseAddress = new Uri(_url);
             HttpResponseMessage response = await client.GetAsync(categoriesEndpoint);
             string content = await response.Content.ReadAsStringAsync();
             if (response.StatusCode == HttpStatusCode.OK)
             {
-                categories = JsonConvert.DeserializeObject<string[]>(content);
+                categories = JsonConvert.DeserializeObject<List<string>>(content);
             }
             return categories;
         }
