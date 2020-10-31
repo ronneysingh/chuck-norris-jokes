@@ -1,0 +1,13 @@
+{
+  "ApiEndpoints": {
+    "ChuckNorrisApi": {
+      "BaseAddress": "https://api.chucknorris.io",
+      "CategoriesEndpoint": "jokes/categories",
+      "RandomJokeEndpoint": "jokes/random"
+    },
+    "NameGeneratorApi": {
+      "BaseAddress": "https://www.names.privserv.com",
+      "ApiEndpoint": "api"
+    }
+  }
+}
