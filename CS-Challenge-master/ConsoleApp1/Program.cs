@@ -32,6 +32,7 @@ namespace ConsoleApp1
                                                         builder.Build().GetSection("ApiEndpoints").GetSection("NameGeneratorApi").GetSection("ApiEndpoint").Value);
             categoriesEndpoint = builder.Build().GetSection("ApiEndpoints").GetSection("ChuckNorrisApi").GetSection("CategoriesEndpoint").Value;
             randomJokesEndpoint = builder.Build().GetSection("ApiEndpoints").GetSection("ChuckNorrisApi").GetSection("RandomJokeEndpoint").Value;
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
 
             printer.Value("Press ? to get instructions.").ToString();
             if (Console.ReadLine() == "?")
@@ -84,7 +85,7 @@ namespace ConsoleApp1
 
         private static void PrintResults()
         {
-            printer.Value(Environment.NewLine + "[" + string.Join(",", results) + "]").ToString();
+            printer.Value(Environment.NewLine + string.Join("\n", results)).ToString();
         }
 
         private static void GetEnteredKey(ConsoleKeyInfo consoleKeyInfo)
@@ -133,6 +134,9 @@ namespace ConsoleApp1
                 case ConsoleKey.N:
                     key = 'n';
                     break;
+                case ConsoleKey.Escape:
+                    Environment.Exit(0);
+                    break;
             }
         }
 
@@ -151,7 +155,7 @@ namespace ConsoleApp1
         private static void GetNames(string nameGeneratorApiEndpoint)
         {
             new JsonFeed(nameGeneratorApiEndpoint);
-            dynamic result = JsonFeed.GetNames();
+            dynamic result = JsonFeed.GetRandomName();
             names = Tuple.Create(result.name.ToString(), result.surname.ToString());
         }
     }

@@ -24,12 +24,16 @@ namespace ConsoleApp1
             _resultCount = resultCount;
         }
 
+        /// <summary>
+        /// GetRandomJokes method returns list of jokes by replacing Chuck Norris depending upon input params
+        /// </summary>
+        /// <param name="firstname">First Name to be replaced in a joke</param>
+        /// <param name="lastname">Last Name to be replaced in a joke</param>
+        /// <param name="category">Category of the jokes</param>
+        /// <param name="randomJokesEndpoint">API endpoint to fetch random jokes</param>
+        /// <returns></returns>
         public static async Task<List<string>> GetRandomJokes(string firstname, string lastname, string category, string randomJokesEndpoint)
         {
-            HttpClient client = new HttpClient();
-            client.BaseAddress = new Uri(_url);
-            var tasks = new List<Task<string>>();
-            List<string> getJokeResponses = new List<string>();
             List<string> returnJokeList = new List<string>();
             if (category != null)
             {
@@ -39,8 +43,29 @@ namespace ConsoleApp1
                 randomJokesEndpoint += "category=";
                 randomJokesEndpoint += category;
             }
+            List<string> getJokeResponses = await GetJokeResponses(randomJokesEndpoint);
 
-            //parallel calls to the api to reduce overall time and improve performance
+            if (string.IsNullOrEmpty(firstname) && string.IsNullOrEmpty(lastname))
+                return getJokeResponses;
+
+            foreach (string joke in getJokeResponses)
+            {
+                returnJokeList.Add(joke.Replace("Chuck Norris", string.Join(" ", firstname, lastname), StringComparison.OrdinalIgnoreCase));
+            }
+            return returnJokeList;
+        }
+
+        /// <summary>
+        /// GetJokeResponses method makes parallel calls to accumulate and return List of jokes
+        /// </summary>
+        /// <param name="randomJokesEndpoint">API endpoint to fetch random jokes</param>
+        /// <returns>List of jokes</returns>
+        private static async Task<List<string>> GetJokeResponses(string randomJokesEndpoint)
+        {
+            HttpClient client = new HttpClient();
+            client.BaseAddress = new Uri(_url);
+            var tasks = new List<Task<string>>();
+            List<string> getJokeResponses = new List<string>();
             for (int i = 0; i < _resultCount; i++)
             {
                 async Task<string> func()
@@ -59,22 +84,14 @@ namespace ConsoleApp1
                 getJokeResponses.Add(joke);
             }
 
-            if (string.IsNullOrEmpty(firstname) && string.IsNullOrEmpty(lastname))
-                return getJokeResponses;
-
-            foreach (string joke in getJokeResponses)
-            {
-                returnJokeList.Add(joke.Replace("Chuck Norris", string.Join(" ", firstname, lastname)));
-            }
-            return returnJokeList;
+            return getJokeResponses;
         }
 
         /// <summary>
-        /// returns an object that contains name and surname
+        /// GetRandomName method returns an object containg random name by calling an API endpoint
         /// </summary>
-        /// <param name="client2"></param>
-        /// <returns></returns>
-		public static dynamic GetNames()
+        /// <returns>Returns an object containing name</returns>
+        public static dynamic GetRandomName()
         {
             HttpClient client = new HttpClient();
             client.BaseAddress = new Uri(_url);
@@ -82,6 +99,11 @@ namespace ConsoleApp1
             return JsonConvert.DeserializeObject<dynamic>(result);
         }
 
+        /// <summary>
+        /// GetCategories method returns a list of categories by calling an API endpoint
+        /// </summary>
+        /// <param name="categoriesEndpoint">API endpoint to fetch categories</param>
+        /// <returns>Returns a List of categories from Chuck Norris API</returns>
         public static async Task<List<string>> GetCategories(string categoriesEndpoint)
         {
             List<string> categories = null;
