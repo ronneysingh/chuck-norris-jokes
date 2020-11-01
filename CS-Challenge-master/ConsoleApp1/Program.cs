@@ -20,31 +20,51 @@ namespace ConsoleApp1
         static string nameGeneratorApiEndpoint;
         static string categoriesEndpoint;
         static string randomJokesEndpoint;
+        static List<string> categories;
 
         static void Main(string[] args)
         {
-            var builder = new ConfigurationBuilder()
-                                .SetBasePath(Directory.GetCurrentDirectory())
-                                .AddJsonFile("configsettings.json", optional: true, reloadOnChange: true);
+            try
+            {
+                var builder = new ConfigurationBuilder()
+                                    .SetBasePath(Directory.GetCurrentDirectory())
+                                    .AddJsonFile("configsettings.json", optional: true, reloadOnChange: true);
 
-            chuckNorrisApiBaseAddress = builder.Build().GetSection("ApiEndpoints").GetSection("ChuckNorrisApi").GetSection("BaseAddress").Value;
-            nameGeneratorApiEndpoint = string.Concat(builder.Build().GetSection("ApiEndpoints").GetSection("NameGeneratorApi").GetSection("BaseAddress").Value, "/",
-                                                        builder.Build().GetSection("ApiEndpoints").GetSection("NameGeneratorApi").GetSection("ApiEndpoint").Value);
-            categoriesEndpoint = builder.Build().GetSection("ApiEndpoints").GetSection("ChuckNorrisApi").GetSection("CategoriesEndpoint").Value;
-            randomJokesEndpoint = builder.Build().GetSection("ApiEndpoints").GetSection("ChuckNorrisApi").GetSection("RandomJokeEndpoint").Value;
-            Console.OutputEncoding = System.Text.Encoding.UTF8;
+                chuckNorrisApiBaseAddress = builder.Build().GetSection("ApiEndpoints").GetSection("ChuckNorrisApi").GetSection("BaseAddress").Value;
+                nameGeneratorApiEndpoint = string.Concat(builder.Build().GetSection("ApiEndpoints").GetSection("NameGeneratorApi").GetSection("BaseAddress").Value, "/",
+                                                            builder.Build().GetSection("ApiEndpoints").GetSection("NameGeneratorApi").GetSection("ApiEndpoint").Value);
+                categoriesEndpoint = builder.Build().GetSection("ApiEndpoints").GetSection("ChuckNorrisApi").GetSection("CategoriesEndpoint").Value;
+                randomJokesEndpoint = builder.Build().GetSection("ApiEndpoints").GetSection("ChuckNorrisApi").GetSection("RandomJokeEndpoint").Value;
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+                ProcessJokes();
+            }
+            catch (Exception)
+            {
+                printer.Value("Something went wrong.");
+            }
+        }
+
+        private static void ProcessJokes()
+        {
             printer.Value("Press ? to get instructions.").ToString();
             if (Console.ReadLine() == "?")
             {
                 while (true)
                 {
-                    printer.Value("Press c to get categories").ToString();
-                    printer.Value("Press r to get random jokes").ToString();
+                    if (key != 'e')
+                    {
+                        printer.Value("Press c to get categories").ToString();
+                        printer.Value("Press r to get random jokes").ToString();
+                    }
                     GetEnteredKey(Console.ReadKey());
-                    
+
+                    if (key == 'e')
+                        continue;
+
                     if (key == 'c')
                     {
+                        printer.Value("Please wait while we get the categories for you...").ToString();
                         GetCategories(chuckNorrisApiBaseAddress, categoriesEndpoint);
                         PrintResults();
                     }
@@ -56,20 +76,39 @@ namespace ConsoleApp1
                             GetNames(nameGeneratorApiEndpoint);
                         printer.Value("Want to specify a category? y/n").ToString();
                         GetEnteredKey(Console.ReadKey());
+                        int n = 0;
                         if (key == 'y')
                         {
                             printer.Value("How many jokes do you want? (1-9)").ToString();
-                            int n = Int32.Parse(Console.ReadLine());
-                            printer.Value("Enter a category;").ToString();
-                            GetRandomJokes(Console.ReadLine(), n, chuckNorrisApiBaseAddress, randomJokesEndpoint);
-                            PrintResults();
+                            Int32.TryParse(Console.ReadLine(), out n);
+                            if (n > 0 && n < 10)
+                            {
+                                printer.Value("Enter a category;").ToString();
+                                string enteredCategory = Console.ReadLine();
+                                if (categories == null || categories.Count == 0)
+                                    GetCategories(chuckNorrisApiBaseAddress, categoriesEndpoint);
+                                if (!categories.Contains(enteredCategory))
+                                    printer.Value("You have entered invalid value for a category. Let's start again...").ToString();
+                                else
+                                {
+                                    GetRandomJokes(enteredCategory, n, chuckNorrisApiBaseAddress, randomJokesEndpoint);
+                                    PrintResults();
+                                }
+                            }
+                            else
+                                printer.Value("You have entered invalid value for number of jokes. Let's start again...").ToString();
                         }
                         else
                         {
                             printer.Value("How many jokes do you want? (1-9)").ToString();
-                            int n = Int32.Parse(Console.ReadLine());
-                            GetRandomJokes(null, n, chuckNorrisApiBaseAddress, randomJokesEndpoint);
-                            PrintResults();
+                            Int32.TryParse(Console.ReadLine(), out n);
+                            if (n > 0 && n < 10)
+                            {
+                                GetRandomJokes(null, n, chuckNorrisApiBaseAddress, randomJokesEndpoint);
+                                PrintResults();
+                            }
+                            else
+                                printer.Value("You have entered invalid value for number of jokes. Let's start again...").ToString();
                         }
                     }
                     else
@@ -80,7 +119,6 @@ namespace ConsoleApp1
                     key = '\0';
                 }
             }
-
         }
 
         private static void PrintResults()
@@ -134,6 +172,9 @@ namespace ConsoleApp1
                 case ConsoleKey.N:
                     key = 'n';
                     break;
+                case ConsoleKey.Enter:
+                    key = 'e';
+                    break;
                 case ConsoleKey.Escape:
                     Environment.Exit(0);
                     break;
@@ -150,6 +191,7 @@ namespace ConsoleApp1
         {
             new JsonFeed(baseAddress);
             results = JsonFeed.GetCategories(categoriesEndpoint).Result;
+            categories = results;
         }
 
         private static void GetNames(string nameGeneratorApiEndpoint)
