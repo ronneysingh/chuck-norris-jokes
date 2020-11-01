@@ -48,76 +48,82 @@ namespace ConsoleApp1
         private static void ProcessJokes()
         {
             printer.Value("Press ? to get instructions.").ToString();
-            if (Console.ReadLine() == "?")
+            bool invalidInput = true;
+            while (invalidInput)
             {
-                while (true)
+                if (Console.ReadLine() == "?")
+                    invalidInput = false;
+                else
+                    printer.Value("You have pressed an Invalid key. Press ? to get instructions.").ToString();
+            }
+            while (true)
+            {
+                if (key != 'e')
                 {
-                    if (key != 'e')
-                    {
-                        printer.Value("Press c to get categories").ToString();
-                        printer.Value("Press r to get random jokes").ToString();
-                    }
+                    printer.Value("Press c to get categories").ToString();
+                    printer.Value("Press r to get random jokes").ToString();
+                    printer.Value("Press Esc to exit...").ToString();
+                }
+                GetEnteredKey(Console.ReadKey());
+
+                if (key == 'e')
+                    continue;
+
+                if (key == 'c')
+                {
+                    printer.Value("Please wait while we get the categories for you...").ToString();
+                    GetCategories(chuckNorrisApiBaseAddress, categoriesEndpoint);
+                    PrintResults();
+                }
+                else if (key == 'r')
+                {
+                    printer.Value("Want to use a random name? y/n").ToString();
                     GetEnteredKey(Console.ReadKey());
-
-                    if (key == 'e')
-                        continue;
-
-                    if (key == 'c')
+                    if (key == 'y')
+                        GetNames(nameGeneratorApiEndpoint);
+                    printer.Value("Want to specify a category? y/n").ToString();
+                    GetEnteredKey(Console.ReadKey());
+                    int n = 0;
+                    if (key == 'y')
                     {
-                        printer.Value("Please wait while we get the categories for you...").ToString();
-                        GetCategories(chuckNorrisApiBaseAddress, categoriesEndpoint);
-                        PrintResults();
-                    }
-                    else if (key == 'r')
-                    {
-                        printer.Value("Want to use a random name? y/n").ToString();
-                        GetEnteredKey(Console.ReadKey());
-                        if (key == 'y')
-                            GetNames(nameGeneratorApiEndpoint);
-                        printer.Value("Want to specify a category? y/n").ToString();
-                        GetEnteredKey(Console.ReadKey());
-                        int n = 0;
-                        if (key == 'y')
+                        printer.Value("How many jokes do you want? (1-9)").ToString();
+                        Int32.TryParse(Console.ReadLine(), out n);
+                        if (n > 0 && n < 10)
                         {
-                            printer.Value("How many jokes do you want? (1-9)").ToString();
-                            Int32.TryParse(Console.ReadLine(), out n);
-                            if (n > 0 && n < 10)
-                            {
-                                printer.Value("Enter a category;").ToString();
-                                string enteredCategory = Console.ReadLine();
-                                if (categories == null || categories.Count == 0)
-                                    GetCategories(chuckNorrisApiBaseAddress, categoriesEndpoint);
-                                if (!categories.Contains(enteredCategory))
-                                    printer.Value("You have entered invalid value for a category. Let's start again...").ToString();
-                                else
-                                {
-                                    GetRandomJokes(enteredCategory, n, chuckNorrisApiBaseAddress, randomJokesEndpoint);
-                                    PrintResults();
-                                }
-                            }
+                            printer.Value("Enter a category;").ToString();
+                            string enteredCategory = Console.ReadLine();
+                            if (categories == null || categories.Count == 0)
+                                GetCategories(chuckNorrisApiBaseAddress, categoriesEndpoint);
+                            if (!categories.Any(x=> x.Equals(enteredCategory, StringComparison.OrdinalIgnoreCase)))
+                                printer.Value("You have entered invalid value for a category. Let's start again...").ToString();
                             else
-                                printer.Value("You have entered invalid value for number of jokes. Let's start again...").ToString();
-                        }
-                        else
-                        {
-                            printer.Value("How many jokes do you want? (1-9)").ToString();
-                            Int32.TryParse(Console.ReadLine(), out n);
-                            if (n > 0 && n < 10)
                             {
-                                GetRandomJokes(null, n, chuckNorrisApiBaseAddress, randomJokesEndpoint);
+                                GetRandomJokes(enteredCategory.ToLower(), n, chuckNorrisApiBaseAddress, randomJokesEndpoint);
                                 PrintResults();
                             }
-                            else
-                                printer.Value("You have entered invalid value for number of jokes. Let's start again...").ToString();
                         }
+                        else
+                            printer.Value("You have entered invalid value for number of jokes. Let's start again...").ToString();
+                    }
+                    else if (key == 'n')
+                    {
+                        printer.Value("How many jokes do you want? (1-9)").ToString();
+                        Int32.TryParse(Console.ReadLine(), out n);
+                        if (n > 0 && n < 10)
+                        {
+                            GetRandomJokes(null, n, chuckNorrisApiBaseAddress, randomJokesEndpoint);
+                            PrintResults();
+                        }
+                        else
+                            printer.Value("You have entered invalid value for number of jokes. Let's start again...").ToString();
                     }
                     else
-                    {
                         printer.Value("You have pressed an Invalid Key. Please try again.").ToString();
-                    }
-                    names = null;
-                    key = '\0';
                 }
+                else
+                    printer.Value("You have pressed an Invalid Key. Please try again.").ToString();
+                names = null;
+                key = '\0';
             }
         }
 
@@ -177,6 +183,9 @@ namespace ConsoleApp1
                     break;
                 case ConsoleKey.Escape:
                     Environment.Exit(0);
+                    break;
+                default:
+                    key = 'i';
                     break;
             }
         }
